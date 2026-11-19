@@ -243,7 +243,8 @@ const CATS = {
   fun:    {label:'בילוי ואטרקציות',icon:'🎡', color:'#1971c2'},
   sights: {label:'אתרים ותרבות',   icon:'🏛️', color:'#2b8a3e'},
   center: {label:'כיכרות ורחובות', icon:'📍', color:'#c2255c'},
-  shop:   {label:'קניות',          icon:'🛍️', color:'#0b7285'}
+  shop:   {label:'קניות',          icon:'🛍️', color:'#0b7285'},
+  air:    {label:'שדה תעופה',      icon:'✈️', color:'#495057'}
 };
 
 const PLACES = [
@@ -258,6 +259,13 @@ const PLACES = [
   sum:'מקום מתוקים וקפה סמוך לרחוב קניות מריאהילפר ולעולם הים – נוח לשלב אחרי קניות או ביקור באקווריום.',verify:true},
  {id:'lindt',name:'Lindt Chocolate Boutique',type:'בוטיק שוקולד',cat:'food',lat:48.2089431,lng:16.3723423,
   sum:'בוטיק שוקולד של לינדט, כמה דקות הליכה משטפנסדום. מתאים לטעימות ולמתנות קטנות מהטיול.'},
+
+ {id:'meah',name:'מסעדת מאה שערים',type:'מסעדה כשרה פאן-אסייתית',cat:'food',lat:48.2147,lng:16.3813,q:'Mea Shearim, Schmelzgasse 3, 1020 Wien',
+  sum:'מסעדה כשרה בסגנון פאן-אסייתי (סושי, מרק עוף, דגים) בלב הרובע היהודי של לאופולדשטאדט (1020), ליד כיכר Karmeliterplatz.',tip:'כתובת: Schmelzgasse 3. מומלץ לוודא כשרות, שעות פתיחה והזמנה מראש, בעיקר סביב שבת וחגים.',verify:true},
+ {id:'veahavta',name:'ואהבת',type:'ביסטרו כשר – בייגלים, פיתות וחומוס',cat:'food',lat:48.2150,lng:16.3797,q:'VeAhavta Kosher Bistro, Taborstraße 20a, 1020 Wien',
+  sum:'ביסטרו כשר עם בייגלים, פיתות ולאפות, קערות חומוס, כריכים וסלטים, בסגנון ישראלי-ים תיכוני. נמצא ברחוב טאבורשטראסה, כמה דקות מ-Schwedenplatz.',tip:'כתובת: Taborstraße 20a. עוד נקודה נוחה לארוחה מהירה קרוב לעיר העתיקה. כדאי לבדוק כשרות ושעות.',verify:true},
+ {id:'ohel',name:'מאפיית אוהל משה',type:'מאפייה וקפה כשרים',cat:'food',lat:48.2160,lng:16.3838,q:'Ohel Bakery & Cafe, Lilienbrunngasse 18, 1020 Wien',
+  sum:'מאפייה ובית קפה כשרים (חלבי ופרווה) באזור הקהילה היהודית בלאופולדשטאדט, ליד Lilienbrunngasse.',tip:'כתובת: Lilienbrunngasse 18. לפי הרישום – בהשגחת Vaad Hakashrus Khal Yisroel Vienna. כדאי לבדוק שעות, בעיקר ביום שישי ובמוצ״ש.',verify:true},
 
  // ברים ונוף
  {id:'loft',name:'Das LOFT',type:'בר-מסעדה על הגג',cat:'night',lat:48.2127326,lng:16.379785,
@@ -324,9 +332,15 @@ const PLACES = [
   sum:'מרכז קניות ענק מדרום לעיר, עם מאות חנויות. שווה חצי יום לפחות.',tip:'נוסעים כ-20–30 דקות מהמרכז; יום שבת ושבתות בסוף השבוע עלולים להיות עמוסים.'},
  {id:'parn',name:'Designer Outlet Parndorf',type:'כפר אאוטלט',cat:'shop',lat:47.975919,lng:16.851909,
   sum:'אאוטלט ענק בבורגנלנד עם מותגי אופנה ידועים במחירים מוזלים. נסיעה של כ-40 דקות עד שעה מהמלון – מתאים ליום שלם.',tip:'מומלץ לצאת מוקדם ולבדוק שעות פתיחה (בחגים הם משתנים).'}
+,
+
+ // שדה תעופה
+ {id:'airport',name:'שדה התעופה וינה (VIE)',type:'נמל תעופה בשוואכאט',cat:'air',lat:48.1062,lng:16.5685,q:'Flughafen Wien-Schwechat',
+  sum:'נמל התעופה הבינלאומי של וינה, בשוואכאט דרום-מזרחית לעיר. נקודת הנחיתה והיציאה של הטיול.',tip:'ממנו יוצאות רכבת S7 ו-City Airport Train (CAT) אל העיר. כדאי לבדוק לוחות זמנים עדכניים. בהזמנת רכב, לחשב זמן מראש לפני טיסה.'}
 ];
 const ALL = [HOTEL, ...PLACES];
 const byId = id => ALL.find(p => p.id === id);
+const dest = p => p.q ? encodeURIComponent(p.q) : `${p.lat},${p.lng}`;
 
 /* ---------- מצב ---------- */
 const STORE_KEY = 'vienna-trip-v1';
@@ -489,7 +503,7 @@ function initMap(){
 }
 function fitAll(){
   if(!map) return;
-  const vis = ALL.filter(p=>p.cat==='hotel' || visible(p)).filter(p=>p.id!=='parn');
+  const vis = ALL.filter(p=>p.cat==='hotel' || visible(p)).filter(p=>p.id!=='parn' && p.id!=='airport');
   const b = L.latLngBounds(vis.map(p=>[p.lat,p.lng]));
   if(b.isValid()) map.fitBounds(b.pad(.12));
 }
@@ -517,7 +531,7 @@ function clearRoute(){
 const modeName = {car:'🚗 ברכב', walk:'🚶 בהליכה', transit:'🚇 בתחבורה ציבורית (הערכה)'};
 function gmapsMode(){ return {car:'driving',walk:'walking',transit:'transit'}[state.mode]; }
 function gmapsLink(from,to){
-  return `https://www.google.com/maps/dir/?api=1&origin=${from.lat},${from.lng}&destination=${to.lat},${to.lng}&travelmode=${gmapsMode()}`;
+  return `https://www.google.com/maps/dir/?api=1&origin=${from.lat},${from.lng}&destination=${dest(to)}&travelmode=${gmapsMode()}`;
 }
 async function showRoute(from, to){
   if(!map || from.id===to.id) return;
@@ -589,9 +603,9 @@ function detailHtml(p){
       ${isOrigin?'':`<button class="btn primary" data-route="${p.id}">🗺️ הצג מסלול על המפה</button>`}
       <button class="btn" data-plan="${p.id}">${inPlan?'✓ בתוכנית (הסר)':'➕ הוסף לתוכנית'}</button>
       ${isOrigin?'':`<button class="btn" data-setorigin="${p.id}">📌 אני נמצא כאן</button>`}
-      <a class="btn" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&origin=${state.origin.lat},${state.origin.lng}&destination=${p.lat},${p.lng}&travelmode=transit">🚇 תחבורה ציבורית ב-Google Maps</a>
-      <a class="btn" target="_blank" rel="noopener" href="https://waze.com/ul?ll=${p.lat},${p.lng}&navigate=yes">Waze</a>
-      <a class="btn" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}">פתח ב-Google Maps</a>
+      <a class="btn" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&origin=${state.origin.lat},${state.origin.lng}&destination=${dest(p)}&travelmode=transit">🚇 תחבורה ציבורית ב-Google Maps</a>
+      <a class="btn" target="_blank" rel="noopener" href="${p.q?'https://waze.com/ul?q='+encodeURIComponent(p.q)+'&navigate=yes':`https://waze.com/ul?ll=${p.lat},${p.lng}&navigate=yes`}">Waze</a>
+      <a class="btn" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${dest(p)}">פתח ב-Google Maps</a>
     </div>`;
 }
 function cardHtml(p){
