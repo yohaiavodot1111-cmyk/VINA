@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>וינה – מדריך הטיול</title>
+<meta name="description" content="מדריך טיול לוינה: מפה דינמית, מסלולים לפי הכבישים וזמני נסיעה בין כל הנקודות, עם בסיס במלון District Living.">
+<meta name="theme-color" content="#1d2d44">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%BB%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{
+  --bg:#f5f2ec; --card:#ffffff; --ink:#1b2430; --muted:#5b6675; --line:#e3ddd1;
+  --brand:#1d2d44; --accent:#c0272d; --accent-soft:#fbe9ea; --ok:#2b8a3e; --warn:#b45309; --warn-soft:#fff4e0;
+  --shadow:0 2px 10px rgba(27,36,48,.08);
+  --radius:14px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:'Heebo',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;-webkit-text-size-adjust:100%}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid #2f6fed;outline-offset:2px;border-radius:6px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+bdi{unicode-bidi:isolate}
+
+/* header */
+header.top{background:linear-gradient(135deg,#1d2d44 0%,#2b4162 60%,#7a1f27 130%);color:#fff;padding:14px 16px}
+.top-in{max-width:1500px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.brand h1{margin:0;font-size:1.55rem;font-weight:800;letter-spacing:.2px}
+.brand p{margin:0;opacity:.85;font-size:.92rem}
+.hotel-chip{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:7px 14px;font-size:.92rem;display:flex;gap:8px;align-items:center}
+
+/* layout */
+.app{max-width:1500px;margin:0 auto;display:grid;grid-template-columns:minmax(360px,440px) 1fr;gap:14px;padding:14px;height:calc(100vh - 78px);min-height:560px}
+.panel{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.mapwrap{position:relative;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);min-height:380px}
+#map{position:absolute;inset:0;direction:ltr;background:#dfe6ea}
+
+/* tabs */
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+.tab{flex:1;padding:12px 8px;background:none;border:0;border-bottom:3px solid transparent;font-weight:700;color:var(--muted)}
+.tab[aria-selected="true"]{color:var(--brand);border-bottom-color:var(--accent)}
+.badge{background:var(--accent);color:#fff;border-radius:999px;font-size:.75rem;padding:1px 8px;margin-inline-start:6px}
+
+/* controls */
+.controls{padding:12px 14px;border-bottom:1px solid var(--line);display:grid;gap:10px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.field{display:grid;gap:3px;flex:1;min-width:140px}
+.field label{font-size:.78rem;font-weight:700;color:var(--muted)}
+select,input[type=search]{width:100%;padding:9px 10px;border:1px solid #cfc8ba;border-radius:10px;background:#fff;min-height:42px}
+.modes{display:flex;border:1px solid #cfc8ba;border-radius:10px;overflow:hidden}
+.mode{flex:1;padding:9px 6px;background:#fff;border:0;min-height:42px;font-weight:500;white-space:nowrap}
+.mode+.mode{border-inline-start:1px solid #cfc8ba}
+.mode[aria-pressed="true"]{background:var(--brand);color:#fff;font-weight:700}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid #cfc8ba;background:#fff;border-radius:999px;padding:6px 12px;font-size:.88rem;min-height:36px;display:inline-flex;gap:6px;align-items:center}
+.chip[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:#fff}
+.chip small{opacity:.7}
+
+.notice{margin:10px 14px 0;padding:9px 12px;border-radius:10px;background:var(--warn-soft);color:#7a3d00;font-size:.88rem;display:none}
+.notice.show{display:block}
+
+/* list */
+.list{overflow:auto;padding:10px 14px 18px;flex:1;min-height:0}
+.group-title{font-weight:800;font-size:.95rem;margin:14px 2px 6px;color:var(--brand)}
+.place{border:1px solid var(--line);border-radius:12px;margin:8px 0;background:#fff;overflow:hidden;transition:box-shadow .15s}
+.place.open{box-shadow:0 4px 16px rgba(27,36,48,.14);border-color:#bfb7a6}
+.place-head{width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;background:none;border:0;text-align:start;min-height:56px}
+.ico{flex:0 0 38px;height:38px;border-radius:50%;display:grid;place-items:center;font-size:1.15rem;background:var(--c);color:#fff}
+.ptxt{flex:1;min-width:0}
+.pname{font-weight:700;display:block;overflow-wrap:anywhere}
+.ptype{font-size:.82rem;color:var(--muted);display:block}
+.tchip{flex:0 0 auto;background:#eef2f7;border-radius:999px;padding:4px 10px;font-size:.84rem;font-weight:700;color:var(--brand);white-space:nowrap}
+.tchip.est{background:#f4f4f4;color:#555;font-weight:500}
+.tchip.here{background:var(--accent-soft);color:var(--accent)}
+.skeleton{width:62px;height:24px;border-radius:999px;background:linear-gradient(90deg,#eee,#f8f8f8,#eee);background-size:200% 100%;animation:sh 1.2s infinite}
+@keyframes sh{to{background-position:-200% 0}}
+.detail{padding:0 14px 14px;border-top:1px dashed var(--line);display:none}
+.place.open .detail{display:block}
+.sum{margin:12px 0 8px}
+.tip{background:#eef6ff;border-radius:10px;padding:8px 10px;font-size:.9rem;margin:8px 0}
+.warn{background:var(--warn-soft);border-radius:10px;padding:8px 10px;font-size:.88rem;margin:8px 0;color:#7a3d00}
+.times{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
+.time{border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center;background:#fafafa}
+.time b{display:block;font-size:1.02rem}
+.time span{font-size:.78rem;color:var(--muted)}
+.time.sel{border-color:var(--brand);background:#eef2f7}
+.fromline{font-size:.82rem;color:var(--muted);margin:6px 0 0}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.btn{border:1px solid #cfc8ba;background:#fff;border-radius:10px;padding:9px 12px;font-weight:600;font-size:.9rem;min-height:42px;text-decoration:none;color:var(--ink);display:inline-flex;align-items:center;gap:6px}
+.btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+.btn.danger{color:var(--accent);border-color:#e6b9bb}
+.btn:hover{filter:brightness(.97)}
+
+/* plan */
+.plan{display:none;overflow:auto;padding:12px 14px 18px;flex:1;min-height:0}
+.empty{color:var(--muted);text-align:center;padding:28px 10px}
+.stop{display:flex;gap:8px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:12px;margin:6px 0;background:#fff}
+.num{flex:0 0 28px;height:28px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;font-weight:700;font-size:.85rem}
+.stop .nm{flex:1;font-weight:600;overflow-wrap:anywhere}
+.mini{border:1px solid #cfc8ba;background:#fff;border-radius:8px;min-width:36px;min-height:36px}
+.leg{font-size:.85rem;color:var(--muted);padding:0 12px 0 0;margin:2px 36px;border-inline-start:3px dotted #c9c2b3;padding-inline-start:10px}
+.summary{background:var(--brand);color:#fff;border-radius:12px;padding:12px 14px;margin:12px 0}
+.summary b{font-size:1.15rem}
+.summary div{font-size:.88rem;opacity:.9}
+
+/* map overlays */
+#routebar{position:absolute;z-index:500;bottom:14px;inset-inline:14px;background:rgba(255,255,255,.97);border-radius:12px;box-shadow:0 4px 18px rgba(0,0,0,.2);padding:10px 12px;display:none;gap:10px;align-items:center;flex-wrap:wrap}
+#routebar.show{display:flex}
+#routebar .info{flex:1;min-width:200px}
+#routebar .info b{font-size:1.05rem}
+#routebar .info div{font-size:.84rem;color:var(--muted)}
+.legend{position:absolute;z-index:450;top:12px;inset-inline-start:12px;background:rgba(255,255,255,.95);border-radius:10px;padding:8px 10px;font-size:.78rem;box-shadow:var(--shadow);display:grid;gap:2px;direction:rtl}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-inline-end:6px;background:var(--c)}
+.pin{width:34px;height:34px;border-radius:50%;background:var(--c);border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4);display:grid;place-items:center;font-size:16px;transition:transform .15s}
+.pin.sel{transform:scale(1.3);z-index:1000!important}
+.pin.hotel{width:44px;height:44px;border-radius:12px;font-size:22px;background:var(--accent)}
+.me{width:16px;height:16px;border-radius:50%;background:#2f6fed;border:3px solid #fff;box-shadow:0 0 0 6px rgba(47,111,237,.25)}
+.numpin{width:30px;height:30px;border-radius:50%;background:var(--brand);color:#fff;border:3px solid #fff;display:grid;place-items:center;font-weight:800;font-size:13px;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.leaflet-popup-content{direction:rtl;text-align:right;font-family:'Heebo',sans-serif;margin:12px 14px;min-width:200px}
+.pop h3{margin:0 0 2px;font-size:1rem}
+.pop small{color:var(--muted)}
+.pop p{margin:6px 0;font-size:.9rem}
+.pop button{margin-top:4px}
+
+footer{max-width:1500px;margin:0 auto;padding:4px 16px 22px;color:var(--muted);font-size:.82rem}
+
+@media (max-width:900px){
+  body{height:auto}
+  .app{display:flex;flex-direction:column;height:auto;padding:10px;min-height:0}
+  .mapwrap{order:-1;height:42vh;min-height:300px;position:sticky;top:0;z-index:600}
+  .panel{overflow:visible}
+  .list,.plan{overflow:visible}
+  .times{grid-template-columns:1fr 1fr 1fr}
+  .legend{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <h1>וינה · מדריך הטיול</h1>
+      <p>מקומות, מסלולים וזמני נסיעה – הכל במקום אחד</p>
+    </div>
+    <div class="hotel-chip" title="נקודת המוצא כברירת מחדל">🏨 המלון: <bdi><strong>District Living</strong></bdi></div>
+  </div>
+</header>
+
+<main class="app">
+  <section class="panel" aria-label="רשימת מקומות ותוכנית">
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" id="tab-places" aria-selected="true" aria-controls="view-places">📍 מקומות</button>
+      <button class="tab" role="tab" id="tab-plan" aria-selected="false" aria-controls="view-plan">🗓️ התוכנית שלי <span class="badge" id="planCount">0</span></button>
+    </div>
+
+    <div id="view-places" role="tabpanel" aria-labelledby="tab-places" style="display:flex;flex-direction:column;min-height:0;flex:1">
+      <div class="controls">
+        <div class="row">
+          <div class="field">
+            <label for="origin">אני נמצא ב…</label>
+            <select id="origin"></select>
+          </div>
+          <div class="field" style="flex:1.2">
+            <label id="modeLbl">אופן הגעה</label>
+            <div class="modes" role="group" aria-labelledby="modeLbl">
+              <button class="mode" data-mode="car" aria-pressed="true">🚗 רכב</button>
+              <button class="mode" data-mode="walk" aria-pressed="false">🚶 הליכה</button>
+              <button class="mode" data-mode="transit" aria-pressed="false">🚇 תח״צ*</button>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field" style="flex:2">
+            <label for="q">חיפוש</label>
+            <input type="search" id="q" placeholder="שם מקום או סוג…" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="sort">מיון</label>
+            <select id="sort">
+              <option value="time">הקרוב ביותר</option>
+              <option value="cat">לפי קטגוריה</option>
+              <option value="name">א׳–ב׳</option>
+            </select>
+          </div>
+        </div>
+        <div class="chips" id="chips" role="group" aria-label="סינון לפי קטגוריה"></div>
+      </div>
+      <div class="notice" id="notice" role="status"></div>
+      <div class="list" id="list" aria-live="polite"></div>
+    </div>
+
+    <div class="plan" id="view-plan" role="tabpanel" aria-labelledby="tab-plan">
+      <div class="row" style="margin-bottom:6px">
+        <div class="field">
+          <label for="dwell">זמן שהייה ממוצע בכל תחנה</label>
+          <select id="dwell">
+            <option value="20">20 דקות</option>
+            <option value="45">45 דקות</option>
+            <option value="60" selected>שעה</option>
+            <option value="90">שעה וחצי</option>
+            <option value="120">שעתיים</option>
+          </select>
+        </div>
+        <label style="display:flex;gap:8px;align-items:center;min-height:42px;margin-top:16px"><input type="checkbox" id="ret" checked> חזרה לנקודת המוצא</label>
+      </div>
+      <div id="planBody"></div>
+    </div>
+  </section>
+
+  <section class="mapwrap" aria-label="מפה">
+    <div id="map" role="application" aria-label="מפה אינטראקטיבית של וינה"></div>
+    <div class="legend" id="legend" aria-hidden="true"></div>
+    <div id="routebar" role="status" aria-live="polite"></div>
+  </section>
+</main>
+
+<footer>
+  * זמני התחבורה הציבורית הם הערכה גסה בלבד – ללוחות זמנים מדויקים לחצו על “תחבורה ציבורית ב-Google Maps” בפרטי המקום.
+  זמני הרכב וההליכה מחושבים לפי הכבישים והשבילים (OpenStreetMap / OSRM) ללא עומסי תנועה בזמן אמת.
+  שעות פתיחה, מחירים ופעילות עונתית – כדאי לוודא באתר הרשמי לפני ההגעה. מפה © תורמי OpenStreetMap.
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function(){
+'use strict';
+
+/* ---------- נתונים ---------- */
+const HOTEL = {id:'hotel', name:'District Living', type:'המלון שלנו', cat:'hotel', lat:48.2315312, lng:16.4148831,
+  sum:'דירות/מלון בנקודת הבסיס שלנו בעיר – רובע דונאושטאדט (22), לצד נהר הדנובה ואי הדנובה. משם מתחילים כל המסלולים באתר.',
+  tip:'באזור יש תחבורה ציבורית לכיוון מרכז העיר; הדנובה והטיילת קרובות להליכה.'};
+
+const CATS = {
+  food:   {label:'אוכל וקינוחים', icon:'🍽️', color:'#d9480f'},
+  night:  {label:'ברים ונוף',      icon:'🍸', color:'#6741d9'},
+  fun:    {label:'בילוי ואטרקציות',icon:'🎡', color:'#1971c2'},
+  sights: {label:'אתרים ותרבות',   icon:'🏛️', color:'#2b8a3e'},
+  center: {label:'כיכרות ורחובות', icon:'📍', color:'#c2255c'},
+  shop:   {label:'קניות',          icon:'🛍️', color:'#0b7285'}
+};
+
+const PLACES = [
+ // אוכל
+ {id:'etiler',name:'Etiler Smash Burger',type:'המבורגר סמאש',cat:'food',lat:48.1761301,lng:16.3641031,
+  sum:'מקום המבורגרים בסגנון סמאש – קציצות דקות וצרובות. עצירה מהירה ומשביעה, נמצא דרומית למרכז.',tip:'מתאים לארוחת צהריים בדרך לאזור הדרומי של העיר.'},
+ {id:'teddy',name:'Hiiich Teddy Cafe',type:'בית קפה דובי',cat:'food',lat:48.203855,lng:16.3705853,
+  sum:'בית קפה בנושא דובונים שנפתח כ״בית הקפה הראשון מסוג זה בוינה״. אווירה משעשעת ומתאימה במיוחד לילדים ולצילומים, ממש ליד קרנטנר שטראסה.',tip:'לקראת סוף השבוע ייתכן תור – שווה לבדוק אם אפשר להזמין מקום.'},
+ {id:'top02',name:'TOP 02',type:'קינוחים, גלידה וקפה',cat:'food',lat:48.2146048,lng:16.3579187,
+  sum:'מקום קינוחים, גלידה וקפה באזור העיר העתיקה – עצירה מתוקה אחרי סיור בקרבת העירייה וכנסיית הווטיף.'},
+ {id:'cinna',name:'CINNAMOOD',type:'מאפים וקפה',cat:'food',lat:48.1981314,lng:16.3491898,
+  sum:'מקום מתוקים וקפה סמוך לרחוב קניות מריאהילפר ולעולם הים – נוח לשלב אחרי קניות או ביקור באקווריום.',verify:true},
+ {id:'lindt',name:'Lindt Chocolate Boutique',type:'בוטיק שוקולד',cat:'food',lat:48.2089431,lng:16.3723423,
+  sum:'בוטיק שוקולד של לינדט, כמה דקות הליכה משטפנסדום. מתאים לטעימות ולמתנות קטנות מהטיול.'},
+
+ // ברים ונוף
+ {id:'loft',name:'Das LOFT',type:'בר-מסעדה על הגג',cat:'night',lat:48.2127326,lng:16.379785,
+  sum:'בר ומסעדה בקומות העליונות של מלון סופיטל, עם נוף לעיר העתיקה ותקרה אמנותית בולטת. מקום טוב לשקיעה או לערב מיוחד.',tip:'מומלץ להזמין מקום מראש בשעות הערב.'},
+ {id:'ocean',name:'360° OCEAN SKY',type:'בר ומסעדה עם נוף',cat:'night',lat:48.1977028,lng:16.3529242,
+  sum:'מקום על גג מגדל עולם הים, עם נוף פנורמי על וינה. כדאי לשלב עם הביקור באקווריום באותו מבנה.'},
+ {id:'potions',name:'The Magical Cocktail Pub',type:'פאב קוקטיילים קסום',cat:'night',lat:48.2298255,lng:16.3563866,
+  sum:'פאב קוקטיילים בסגנון קוסמים וכישוף, שבו המשקאות מוגשים כמו שיקויים. ערב אחר ושונה מהרגיל.',tip:'מיועד בעיקר לבוגרים – בדקו מראש שעות וגיל כניסה.'},
+ {id:'copa',name:'CopaBeach',type:'ביץ׳ בר על הדנובה',cat:'night',lat:48.2312115,lng:16.4107303,
+  sum:'מתחם בר, מסעדות ובילוי לאורך הדנובה החדשה, ממש ליד המלון. האווירה בו קיצית ופעילותו עונתית.',tip:'בחורף ייתכן שרוב המקום סגור – לוודא לפני שיוצאים.',season:true},
+
+ // בילוי
+ {id:'bubble',name:'Bubble Planet',type:'מוזיאון חוויתי של בועות',cat:'fun',lat:48.2329066,lng:16.4551362,
+  sum:'מוזיאון אינטראקטיבי לכל החושים סביב בועות סבון, אורות ומשחקי צבע. מתאים למשפחות ולצילומים.',tip:'בכיוון מזרח, לא רחוק מהמלון.'},
+ {id:'battlekart',name:'BattleKart Wien',type:'קארטינג במציאות רבודה',cat:'fun',lat:48.2130303,lng:16.411958,
+  sum:'מסלול קארטינג אמיתי עם משחק מציאות רבודה – נוסעים בקארטים ואוספים נקודות בתוך הסביבה הווירטואלית.',tip:'כדאי להזמין מראש; יש הגבלות גיל וגובה.'},
+ {id:'imperial',name:'Imperial Lights',type:'גן אורות חורפי',cat:'fun',lat:48.1838786,lng:16.318528,
+  sum:'גן אורות עונתי בפארק ארמון שנברון, בדרך כלל בתקופת החורף והחגים. סיור ערב מוארות בין מתקני אור.',tip:'פתוח רק בעונה – לבדוק תאריכים וכרטיסים. אפשר לחבר לביקור בשנברון.',season:true},
+ {id:'haus',name:'Haus des Meeres',type:'אקווריום ומגדל',cat:'fun',lat:48.1976502,lng:16.3528868,
+  sum:'אקווריום וטרריום בתוך מגדל נ״מ ישן בפארק אסטרהאזי. כמה קומות של דגים, זוחלים וקופים, ועל הגג נוף לעיר.',tip:'מתאים ליום גשום. שווה לשלב עם 360° Ocean Sky באותו מקום.'},
+ {id:'prater',name:'Prater',type:'פארק שעשועים והגלגל הענק',cat:'fun',lat:48.2154648,lng:16.4001739,
+  sum:'הפארק הגדול של וינה והפראטר הקטן עם מתקני שעשועים והגלגל הענק (Riesenrad). הכניסה לפארק חופשית, והמתקנים בתשלום.',tip:'נוח להגיע מ-Schwedenplatz; יפה במיוחד בערב.'},
+ {id:'heindl',name:'HEINDL Chocolate Museum',type:'מוזיאון שוקולד',cat:'fun',lat:48.1510814,lng:16.3326553,
+  sum:'מוזיאון שוקולד חוויתי עם טעימות, מחוץ למרכז העיר. מתאים לילדים ולחובבי מתוקים.',tip:'רחוק יחסית – כדאי לשלב עם האזור הדרומי (Etiler).',verify:true},
+ {id:'museumchange',name:'MUSEUM OF CHANGE',type:'אמנות דיגיטלית חווייתית',cat:'fun',lat:48.2102304,lng:16.3791327,
+  sum:'מתחם בבניין הדואר הראשי הישן בעיר העתיקה שמציג אמנות דיגיטלית והתקנים מבוססי בינה מלאכותית, בין היתר בחצר. קרוב מאוד ל-Schwedenplatz.',verify:true},
+ {id:'film',name:'Erlebe den Film',type:'חוויית קולנוע',cat:'fun',lat:48.1916304,lng:16.358823,
+  sum:'חוויה סביב עולם הקולנוע, באזור מרכז-דרום. לא הצלחתי לאמת פרטי פעילות, שעות או מחיר.',verify:true},
+
+ // אתרים
+ {id:'schoen',name:'ארמון שנברון',type:'ארמון קיסרי ו-UNESCO',cat:'sights',lat:48.1858124,lng:16.3127641,
+  sum:'מעון הקיץ של שושלת הבסבורג, אחד האתרים המפורסמים בוינה: ארמון מפואר, גנים גדולים ותצפית. מומלץ להקדיש לו חצי יום ומעלה.',tip:'כדאי לקנות כרטיס מראש ולהגיע בשעות הבוקר.'},
+ {id:'zoo',name:'גן החיות שנברון',type:'גן חיות היסטורי',cat:'sights',lat:48.1820863,lng:16.3027845,
+  sum:'גן חיות היסטורי בתוך מתחם שנברון, ונחשב לוותיק בעולם. מתאים במיוחד למשפחות עם ילדים.',tip:'שכן לארמון – קל לשלב ביום אחד.'},
+ {id:'votiv',name:'ווטיפקירכה',type:'כנסייה נאו-גותית',cat:'sights',lat:48.2154012,lng:16.3590821,
+  sum:'כנסייה נאו-גותית מרשימה בצד העיר העתיקה, קרובה לעירייה ולאוניברסיטה. נעים לעצור לצילום ולהיכנס פנימה.'},
+
+ // כיכרות ורחובות
+ {id:'steph',name:'Stephansplatz',type:'הכיכר המרכזית וקתדרלת שטפן',cat:'center',lat:48.2087334,lng:16.3736765,
+  sum:'לב העיר העתיקה, עם קתדרלת Stephansdom. נקודת מוצא טובה להליכה אל רחובות הקניות והקפה.',tip:'תחנת מטרו U1/U3.'},
+ {id:'karnt',name:'Kärntner Straße',type:'רחוב קניות להולכי רגל',cat:'center',lat:48.2042385,lng:16.3705339,
+  sum:'הרחוב הראשי להולכי רגל שמחבר בין שטפנסדום לאופרה. חנויות, קפה, אמני רחוב ואווירה תוססת.'},
+ {id:'karls',name:'Karlsplatz',type:'כיכר וכנסיית קרל',cat:'center',lat:48.2004635,lng:16.3704545,
+  sum:'כיכר עם Karlskirche הברוקית וצומת תחבורה חשוב. בעונת החגים לרוב פועלים כאן דוכנים.',tip:'מטרו U1/U2/U4.'},
+ {id:'rathaus',name:'Rathausplatz',type:'כיכר העירייה',cat:'center',lat:48.2106456,lng:16.3587554,
+  sum:'הכיכר שלפני בניין העירייה הגותי. בחורף נערך כאן שוק חג המולד ובקיץ אירועים וסרטי קולנוע.',season:true},
+ {id:'schweden',name:'Schwedenplatz',type:'צומת מרכזי ליד התעלה',cat:'center',lat:48.2112768,lng:16.378547,
+  sum:'צומת תחבורה על תעלת הדנובה בקצה העיר העתיקה, עם הרבה מסעדות ובתי קפה. קרוב לפראטר ול-Museum of Change.',tip:'קו U1 ו-U4.'},
+ {id:'spittel',name:'שכונת שפיטלברג',type:'סמטאות היסטוריות',cat:'center',lat:48.2041557,lng:16.3571752,
+  sum:'שכונה בסגנון בידרמאייר עם סמטאות מרוצפות, חנויות עיצוב ומסעדות קטנות. נעימה לשיטוט, ובעונת החגים יש בה שוק.',season:true},
+ {id:'ketten',name:'Kettenbrückengasse',type:'תחנת מטרו ושוק נאשמרקט',cat:'center',lat:48.1948897,lng:16.3608947,
+  sum:'אזור סביב תחנת מטרו U4 ובקרבת שוק נאשמרקט, עם דוכני אוכל, מסעדות ובנייני אר-נובו לאורך ה-Wienzeile.',tip:'מקום טוב לארוחה מגוונת ולשיטוט.'},
+
+ // קניות
+ {id:'tk1',name:'TK Maxx (מריאהילפר)',type:'חנות מותגים בהנחה',cat:'shop',lat:48.1978942,lng:16.3494957,
+  sum:'סניף TK Maxx ברחוב הקניות מריאהילפר – מותגים בהנחה, נוח לשלב עם עולם הים ו-CINNAMOOD.'},
+ {id:'tk2',name:'TK Maxx (צפון העיר)',type:'חנות מותגים בהנחה',cat:'shop',lat:48.2398094,lng:16.3871713,
+  sum:'סניף TK Maxx בצפון העיר, באזור קניון גדול. בחירה טובה אם רוצים שקט יחסית מהמרכז.',verify:true},
+ {id:'wm',name:'Wien Mitte The Mall',type:'קניון במרכז',cat:'shop',lat:48.2069471,lng:16.3852459,
+  sum:'קניון קטן ונוח בתחנת Wien Mitte שבין העיר לדנובה. אפשרות טובה לקניות קצרות ולאוכל מהיר.'},
+ {id:'dz',name:'Westfield Donau Zentrum',type:'קניון גדול',cat:'shop',lat:48.2420571,lng:16.4359636,
+  sum:'קניון גדול ומרכזי בדונאושטאדט, קרוב מאוד למלון – טוב לקניות ולצורך בסידורים מהירים.'},
+ {id:'scs',name:'Westfield Shopping City Süd',type:'הקניון הגדול של אוסטריה',cat:'shop',lat:48.1080284,lng:16.3179302,
+  sum:'מרכז קניות ענק מדרום לעיר, עם מאות חנויות. שווה חצי יום לפחות.',tip:'נוסעים כ-20–30 דקות מהמרכז; יום שבת ושבתות בסוף השבוע עלולים להיות עמוסים.'},
+ {id:'parn',name:'Designer Outlet Parndorf',type:'כפר אאוטלט',cat:'shop',lat:47.975919,lng:16.851909,
+  sum:'אאוטלט ענק בבורגנלנד עם מותגי אופנה ידועים במחירים מוזלים. נסיעה של כ-40 דקות עד שעה מהמלון – מתאים ליום שלם.',tip:'מומלץ לצאת מוקדם ולבדוק שעות פתיחה (בחגים הם משתנים).'}
+];
+const ALL = [HOTEL, ...PLACES];
+const byId = id => ALL.find(p => p.id === id);
+
+/* ---------- מצב ---------- */
+const STORE_KEY = 'vienna-trip-v1';
+const state = {origin:HOTEL, mode:'car', cat:'all', q:'', sort:'time', open:null, plan:[], ret:true, dwell:60, me:null, times:{}, loading:false, usedFallback:false};
+try{
+  const s = JSON.parse(localStorage.getItem(STORE_KEY)||'null');
+  if(s){
+    if(Array.isArray(s.plan)) state.plan = s.plan.filter(id=>byId(id) && id!=='hotel');
+    if(['car','walk','transit'].includes(s.mode)) state.mode = s.mode;
+    if(typeof s.ret==='boolean') state.ret = s.ret;
+    if([20,45,60,90,120].includes(s.dwell)) state.dwell = s.dwell;
+    if(s.origin && byId(s.origin)) state.origin = byId(s.origin);
+  }
+}catch(e){}
+function save(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify({plan:state.plan, mode:state.mode, ret:state.ret, dwell:state.dwell, origin:state.origin.id==='me'?'hotel':state.origin.id})); }catch(e){} }
+
+/* ---------- כלים ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const colorOf = p => p.cat==='hotel' ? '#c0272d' : CATS[p.cat].color;
+const iconOf  = p => p.cat==='hotel' ? '🏨' : CATS[p.cat].icon;
+function fmt(min){
+  min = Math.max(1, Math.round(min));
+  if(min < 60) return min + ' דק׳';
+  const h = Math.floor(min/60), m = min%60;
+  return m ? `${h} שע׳ ${m} דק׳` : `${h} שע׳`;
+}
+const fmtKm = km => km < 1 ? Math.round(km*1000) + ' מ׳' : km.toFixed(1) + ' ק״מ';
+function hav(a,b){
+  const R=6371, r=Math.PI/180;
+  const dLat=(b.lat-a.lat)*r, dLng=(b.lng-a.lng)*r;
+  const x=Math.sin(dLat/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.sqrt(x));
+}
+function estimate(a,b){
+  const km = hav(a,b)*1.35;
+  const kmh = km<8 ? 24 : km<25 ? 36 : 65;
+  return {carMin:km/kmh*60+3, walkMin:km/4.8*60, km};
+}
+function transitMin(roadKm, walkMin){
+  if(walkMin <= 12) return walkMin;
+  const t = roadKm < 20 ? 9 + roadKm/20*60 : 25 + roadKm/45*60;
+  return Math.min(t, walkMin);
+}
+
+const PROV = {
+  car:  ['https://routing.openstreetmap.de/routed-car', 'https://router.project-osrm.org'],
+  foot: ['https://routing.openstreetmap.de/routed-foot']
+};
+const provs = () => state.mode==='walk' ? PROV.foot : PROV.car;
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+async function osrm(base, path, ms=15000){
+  const c = new AbortController(); const t = setTimeout(()=>c.abort(), ms);
+  try{
+    const r = await fetch(base+path, {signal:c.signal});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const j = await r.json();
+    if(j.code && j.code!=='Ok') throw new Error(j.code);
+    return j;
+  } finally { clearTimeout(t); }
+}
+// מנסה כל שרת ברשימה, ובסוף ניסיון חוזר אחד
+async function osrmAny(bases, path, ms=10000){
+  let last;
+  for(let round=0; round<2; round++){
+    for(const b of bases){
+      try{ return await osrm(b, path, ms); }
+      catch(e){ last = new Error((e.name==='AbortError' ? 'timeout' : e.message) + ' @' + b.replace('https://','').split('/')[0]); }
+    }
+    if(round===0) await sleep(700);
+  }
+  throw last;
+}
+const coordStr = pts => pts.map(p=>`${p.lng},${p.lat}`).join(';');
+
+/* ---------- זמנים דינמיים ---------- */
+let timesToken = 0;
+async function computeTimes(){
+  const token = ++timesToken;
+  state.loading = true; renderList();
+  const o = state.origin;
+  const targets = ALL.filter(p=>p.id!==o.id);
+  const cs = coordStr([o,...targets]);
+  const errs = {};
+  const tbl = async (name) => {
+    try{ return await osrmAny(PROV[name], `/table/v1/driving/${cs}?sources=0&annotations=duration,distance`); }
+    catch(e1){
+      try{ return await osrmAny(PROV[name], `/table/v1/driving/${cs}?sources=0`); }
+      catch(e2){ errs[name] = e1.message; return null; }
+    }
+  };
+  const [car, foot] = await Promise.all([tbl('car'), tbl('foot')]);
+  if(token !== timesToken) return;
+  const out = {};
+  targets.forEach((p,i)=>{
+    const idx=i+1, est=estimate(o,p);
+    const cSec = car && car.durations && car.durations[0][idx];
+    const cM   = car && car.distances && car.distances[0][idx];
+    const wSec = foot && foot.durations && foot.durations[0][idx];
+    const wM   = foot && foot.distances && foot.distances[0][idx];
+    const carOk = typeof cSec==='number', walkOk = typeof wSec==='number';
+    const carKm = carOk && typeof cM==='number' ? cM/1000 : est.km;
+    const carMin = carOk ? cSec/60 : est.carMin;
+    const walkMin = walkOk ? wSec/60 : est.walkMin;
+    const walkKm = walkOk && typeof wM==='number' ? wM/1000 : est.km;
+    out[p.id] = {
+      car:{min:carMin, km:carKm, est:!carOk},
+      walk:{min:walkMin, km:walkKm, est:!walkOk},
+      transit:{min:transitMin(carKm, walkMin), km:carKm, est:true}
+    };
+  });
+  state.times = out; state.loading = false;
+  state.usedFallback = !car || !foot;
+  const n = $('#notice');
+  if(state.usedFallback){
+    const which = !car && !foot ? 'רכב והליכה' : !car ? 'רכב' : 'הליכה';
+    n.innerHTML = `חישוב זמני ${which} מהשרת נכשל, ולכן מוצגת הערכה (“כ-”). פתיחת מקום ברשימה מחשבת עבורו זמן מדויק. <button class="btn" id="retry" style="min-height:32px;padding:3px 10px;margin-inline-start:6px">נסה שוב</button><br><small style="opacity:.75" dir="ltr">${esc(Object.values(errs).join(' | '))}</small>`;
+    n.classList.add('show');
+    $('#retry').onclick = computeTimes;
+  } else n.classList.remove('show');
+  renderList();
+}
+
+async function refine(p){
+  const o = state.origin; const t = state.times[p.id];
+  if(!t || p.id===o.id || (!t.car.est && !t.walk.est)) return;
+  const cs = coordStr([o,p]);
+  const get = (name) => osrmAny(PROV[name], `/route/v1/driving/${cs}?overview=false`, 9000).then(j=>j.routes[0]).catch(()=>null);
+  const [c, w] = await Promise.all([t.car.est ? get('car') : null, t.walk.est ? get('foot') : null]);
+  if(state.origin!==o || state.times[p.id]!==t) return;
+  if(w) t.walk = {min:w.duration/60, km:w.distance/1000, est:false};
+  if(c){ const km=c.distance/1000; t.car = {min:c.duration/60, km, est:false}; t.transit = {min:transitMin(km, t.walk.min), km, est:true}; }
+  else if(w) t.transit = {min:transitMin(t.car.km, t.walk.min), km:t.car.km, est:true};
+  if(c||w) renderList();
+}
+
+/* ---------- מפה ---------- */
+let map, markers = {}, routeLayer = null, planLayer = null, meMarker = null, planPins = [];
+function initMap(){
+  if(typeof L === 'undefined'){
+    $('#map').innerHTML = '<div style="padding:30px;direction:rtl;text-align:center">לא ניתן לטעון את המפה (בדקו חיבור לאינטרנט) – הרשימה עדיין זמינה.</div>';
+    return false;
+  }
+  map = L.map('map', {zoomControl:true, scrollWheelZoom:true}).setView([48.21,16.38], 12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19, attribution:'© OpenStreetMap'}).addTo(map);
+  ALL.forEach(p=>{
+    const icon = L.divIcon({className:'', html:`<div class="pin ${p.cat==='hotel'?'hotel':''}" style="--c:${colorOf(p)}" data-id="${p.id}">${iconOf(p)}</div>`, iconSize:p.cat==='hotel'?[44,44]:[34,34], iconAnchor:p.cat==='hotel'?[22,22]:[17,17], popupAnchor:[0,-18]});
+    const m = L.marker([p.lat,p.lng], {icon, title:p.name, riseOnHover:true, keyboard:true});
+    m.bindPopup(()=>popupHtml(p), {maxWidth:300});
+    m.on('click', ()=>openPlace(p.id, {fromMap:true}));
+    m.addTo(map);
+    markers[p.id] = m;
+  });
+  const lg = $('#legend');
+  lg.innerHTML = `<div><i style="--c:#c0272d"></i>המלון</div>` + Object.values(CATS).map(c=>`<div><i style="--c:${c.color}"></i>${c.label}</div>`).join('');
+  fitAll();
+  setTimeout(()=>map.invalidateSize(), 200);
+  window.addEventListener('resize', ()=>map.invalidateSize());
+  return true;
+}
+function fitAll(){
+  if(!map) return;
+  const vis = ALL.filter(p=>p.cat==='hotel' || visible(p)).filter(p=>p.id!=='parn');
+  const b = L.latLngBounds(vis.map(p=>[p.lat,p.lng]));
+  if(b.isValid()) map.fitBounds(b.pad(.12));
+}
+function popupHtml(p){
+  const t = timeFor(p);
+  return `<div class="pop"><h3><bdi>${esc(p.name)}</bdi></h3><small>${esc(p.type)}</small>
+  <p>${esc(p.sum)}</p>${t?`<p><b>${t}</b></p>`:''}
+  <button class="btn primary" data-route="${p.id}">הצג מסלול</button></div>`;
+}
+document.addEventListener('click', e=>{
+  const b = e.target.closest('[data-route]');
+  if(b) showRoute(state.origin, byId(b.dataset.route));
+});
+function setSelected(id){
+  document.querySelectorAll('.pin.sel').forEach(n=>n.classList.remove('sel'));
+  const n = document.querySelector(`.pin[data-id="${id}"]`);
+  if(n) n.classList.add('sel');
+}
+
+/* ---------- מסלול על המפה ---------- */
+function clearRoute(){
+  if(routeLayer){ map.removeLayer(routeLayer); routeLayer=null; }
+  $('#routebar').classList.remove('show');
+}
+const modeName = {car:'🚗 ברכב', walk:'🚶 בהליכה', transit:'🚇 בתחבורה ציבורית (הערכה)'};
+function gmapsMode(){ return {car:'driving',walk:'walking',transit:'transit'}[state.mode]; }
+function gmapsLink(from,to){
+  return `https://www.google.com/maps/dir/?api=1&origin=${from.lat},${from.lng}&destination=${to.lat},${to.lng}&travelmode=${gmapsMode()}`;
+}
+async function showRoute(from, to){
+  if(!map || from.id===to.id) return;
+  clearRoute();
+  const bar = $('#routebar');
+  bar.innerHTML = '<div class="info"><b>מחשב מסלול…</b></div>'; bar.classList.add('show');
+  const base = provs();
+  let geo=null, sec=null, km=null, est=false;
+  try{
+    const j = await osrmAny(base, `/route/v1/driving/${coordStr([from,to])}?overview=full&geometries=geojson`);
+    const r = j.routes[0]; geo=r.geometry; sec=r.duration; km=r.distance/1000;
+  }catch(e){
+    const es = estimate(from,to);
+    geo = {type:'LineString', coordinates:[[from.lng,from.lat],[to.lng,to.lat]]};
+    sec = (state.mode==='walk'?es.walkMin:es.carMin)*60; km=es.km; est=true;
+  }
+  let min = sec/60;
+  if(state.mode==='transit') min = transitMin(km, estimate(from,to).walkMin);
+  const color = {car:'#c0272d', walk:'#2b8a3e', transit:'#6741d9'}[state.mode];
+  routeLayer = L.geoJSON(geo, {style:{color, weight:6, opacity:.85, lineCap:'round', dashArray: (state.mode==='transit'||est)?'2 10':null}}).addTo(map);
+  map.fitBounds(routeLayer.getBounds().pad(.2));
+  bar.innerHTML = `
+    <div class="info"><b>${fmt(min)} · ${fmtKm(km)}</b>
+      <div>${modeName[state.mode]}${est||state.mode==='transit'?' · הערכה':''}<br><bdi>${esc(from.name)}</bdi> ← <bdi>${esc(to.name)}</bdi></div></div>
+    <a class="btn primary" target="_blank" rel="noopener" href="${gmapsLink(from,to)}">ניווט ב-Google Maps</a>
+    <button class="btn" id="rbClose">✕ סגור</button>`;
+  $('#rbClose').onclick = clearRoute;
+}
+
+/* ---------- רשימה ---------- */
+function visible(p){
+  if(p.cat==='hotel') return false;
+  if(state.cat!=='all' && p.cat!==state.cat) return false;
+  const q = state.q.trim().toLowerCase();
+  if(q && !(p.name+' '+p.type+' '+CATS[p.cat].label).toLowerCase().includes(q)) return false;
+  return true;
+}
+function timeFor(p){
+  if(p.id===state.origin.id) return 'אתם כאן';
+  const t = state.times[p.id]; if(!t) return '';
+  const x = t[state.mode];
+  return (x.est?'כ-':'') + fmt(x.min);
+}
+function chipHtml(p){
+  if(p.id===state.origin.id) return '<span class="tchip here">אתם כאן</span>';
+  if(state.loading && !state.times[p.id]) return '<span class="skeleton" aria-label="מחשב"></span>';
+  const t = state.times[p.id]; if(!t) return '';
+  const x = t[state.mode];
+  const ic = {car:'🚗',walk:'🚶',transit:'🚇'}[state.mode];
+  return `<span class="tchip ${x.est?'est':''}">${ic} ${x.est?'כ-':''}${fmt(x.min)}</span>`;
+}
+function detailHtml(p){
+  const inPlan = state.plan.includes(p.id);
+  const isOrigin = p.id===state.origin.id;
+  let times = '';
+  if(!isOrigin && state.times[p.id]){
+    const t = state.times[p.id];
+    const cell = (k,ic,lbl)=>`<div class="time ${state.mode===k?'sel':''}"><span>${ic} ${lbl}</span><b>${t[k].est?'כ-':''}${fmt(t[k].min)}</b><span>${fmtKm(t[k].km)}</span></div>`;
+    times = `<div class="times">${cell('car','🚗','רכב')}${cell('walk','🚶','הליכה')}${cell('transit','🚇','תח״צ*')}</div>
+      <p class="fromline">הזמנים מחושבים מ-<bdi><b>${esc(state.origin.name)}</b></bdi>. כדי לשנות – בחרו נקודת מוצא אחרת למעלה.</p>`;
+  }
+  return `
+    <p class="sum">${esc(p.sum)}</p>
+    ${p.tip?`<div class="tip">💡 ${esc(p.tip)}</div>`:''}
+    ${p.season?'<div class="warn">🗓️ פעילות עונתית – לבדוק זמינות לפני ההגעה.</div>':''}
+    ${p.verify?'<div class="warn">⚠️ לא הצלחתי לאמת את כל הפרטים על המקום – מומלץ לבדוק באתר או בגוגל מפות.</div>':''}
+    ${times}
+    <div class="actions">
+      ${isOrigin?'':`<button class="btn primary" data-route="${p.id}">🗺️ הצג מסלול על המפה</button>`}
+      <button class="btn" data-plan="${p.id}">${inPlan?'✓ בתוכנית (הסר)':'➕ הוסף לתוכנית'}</button>
+      ${isOrigin?'':`<button class="btn" data-setorigin="${p.id}">📌 אני נמצא כאן</button>`}
+      <a class="btn" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&origin=${state.origin.lat},${state.origin.lng}&destination=${p.lat},${p.lng}&travelmode=transit">🚇 תחבורה ציבורית ב-Google Maps</a>
+      <a class="btn" target="_blank" rel="noopener" href="https://waze.com/ul?ll=${p.lat},${p.lng}&navigate=yes">Waze</a>
+      <a class="btn" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}">פתח ב-Google Maps</a>
+    </div>`;
+}
+function cardHtml(p){
+  const open = state.open===p.id;
+  return `<article class="place ${open?'open':''}" id="pl-${p.id}">
+    <button class="place-head" aria-expanded="${open}" data-open="${p.id}">
+      <span class="ico" style="--c:${colorOf(p)}" aria-hidden="true">${iconOf(p)}</span>
+      <span class="ptxt"><span class="pname"><bdi>${esc(p.name)}</bdi></span><span class="ptype">${esc(p.type)}</span></span>
+      ${chipHtml(p)}
+    </button>
+    <div class="detail">${open?detailHtml(p):''}</div>
+  </article>`;
+}
+function renderList(){
+  const list = $('#list');
+  let arr = PLACES.filter(visible);
+  const tm = p => (state.times[p.id] ? state.times[p.id][state.mode].min : 1e9);
+  if(state.sort==='time') arr.sort((a,b)=> a.id===state.origin.id?-1 : b.id===state.origin.id?1 : tm(a)-tm(b));
+  else if(state.sort==='name') arr.sort((a,b)=>a.name.localeCompare(b.name,'he'));
+  let html = '';
+  if(!arr.length) html = '<div class="empty">לא נמצאו מקומות. נסו לשנות סינון או חיפוש.</div>';
+  else if(state.sort==='cat'){
+    Object.keys(CATS).forEach(k=>{
+      const g = arr.filter(p=>p.cat===k); if(!g.length) return;
+      html += `<h2 class="group-title">${CATS[k].icon} ${CATS[k].label}</h2>` + g.map(cardHtml).join('');
+    });
+  } else html = arr.map(cardHtml).join('');
+  list.innerHTML = html;
+  if(map) Object.keys(markers).forEach(id=>{
+    const p = byId(id); const on = id==='hotel' || visible(p);
+    const m = markers[id];
+    if(on && !map.hasLayer(m)) m.addTo(map);
+    if(!on && map.hasLayer(m)) map.removeLayer(m);
+  });
+  setSelected(state.open);
+}
+function renderChips(){
+  const total = PLACES.length;
+  const c = [`<button class="chip" aria-pressed="${state.cat==='all'}" data-cat="all">הכל <small>${total}</small></button>`];
+  Object.entries(CATS).forEach(([k,v])=>{
+    const n = PLACES.filter(p=>p.cat===k).length;
+    c.push(`<button class="chip" aria-pressed="${state.cat===k}" data-cat="${k}">${v.icon} ${v.label} <small>${n}</small></button>`);
+  });
+  $('#chips').innerHTML = c.join('');
+}
+function renderOrigin(){
+  const sel = $('#origin');
+  let h = `<option value="hotel">🏨 District Living (המלון)</option><option value="me">📡 המיקום שלי</option>`;
+  Object.entries(CATS).forEach(([k,v])=>{
+    h += `<optgroup label="${v.label}">` + PLACES.filter(p=>p.cat===k).map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('') + '</optgroup>';
+  });
+  sel.innerHTML = h;
+  sel.value = state.origin.id;
+}
+function openPlace(id, opt={}){
+  state.open = state.open===id && !opt.fromMap ? null : id;
+  renderList();
+  const p = byId(id);
+  if(state.open===id) refine(p);
+  if(state.open===id && map){
+    if(!opt.fromMap) { map.flyTo([p.lat,p.lng], Math.max(map.getZoom(),14), {duration:.6}); markers[id].openPopup(); }
+    const el = document.getElementById('pl-'+id);
+    if(el && opt.fromMap){ switchTab('places'); el.scrollIntoView({block:'nearest',behavior:'smooth'}); }
+  }
+}
+
+/* ---------- בחירת מוצא ---------- */
+function setOrigin(o){
+  state.origin = o; clearRoute(); save();
+  $('#origin').value = o.id;
+  state.times = {}; computeTimes(); renderPlan();
+}
+function useMyLocation(){
+  const sel = $('#origin');
+  if(!navigator.geolocation){ alert('הדפדפן לא תומך באיתור מיקום.'); sel.value=state.origin.id; return; }
+  navigator.geolocation.getCurrentPosition(pos=>{
+    state.me = {id:'me', name:'המיקום שלי', type:'', cat:'hotel', lat:pos.coords.latitude, lng:pos.coords.longitude};
+    if(map){
+      if(meMarker) map.removeLayer(meMarker);
+      meMarker = L.marker([state.me.lat,state.me.lng], {icon:L.divIcon({className:'',html:'<div class="me"></div>',iconSize:[16,16]}), title:'המיקום שלי'}).addTo(map);
+    }
+    setOrigin(state.me);
+  }, ()=>{ alert('לא הצלחתי לקבל את המיקום. אשרו הרשאת מיקום בדפדפן.'); sel.value = state.origin.id; }, {enableHighAccuracy:true, timeout:10000});
+}
+
+/* ---------- תוכנית ---------- */
+let planToken = 0, lastPlan = null;
+function togglePlan(id){
+  const i = state.plan.indexOf(id);
+  if(i>=0) state.plan.splice(i,1); else state.plan.push(id);
+  save(); renderList(); renderPlan();
+}
+function clearPlanLayer(){
+  if(planLayer){ map.removeLayer(planLayer); planLayer=null; }
+  planPins.forEach(m=>map.removeLayer(m)); planPins=[];
+}
+async function renderPlan(){
+  $('#planCount').textContent = state.plan.length;
+  const body = $('#planBody');
+  if(map) clearPlanLayer();
+  if(!state.plan.length){
+    body.innerHTML = '<div class="empty">התוכנית ריקה.<br>פתחו מקום ברשימה ולחצו “הוסף לתוכנית”.<br>אפשר לסדר אוטומטית ולקבל זמן כולל.</div>';
+    return;
+  }
+  const stops = state.plan.map(byId);
+  body.innerHTML = stops.map((p,i)=>`
+    <div class="leg" id="leg-${i}">…</div>
+    <div class="stop"><span class="num">${i+1}</span><span class="nm"><bdi>${esc(p.name)}</bdi></span>
+      <button class="mini" data-up="${i}" aria-label="הזז למעלה" ${i===0?'disabled':''}>▲</button>
+      <button class="mini" data-down="${i}" aria-label="הזז למטה" ${i===stops.length-1?'disabled':''}>▼</button>
+      <button class="mini" data-del="${p.id}" aria-label="הסר">✕</button></div>`).join('') + (state.ret ? `<div class="leg" id="leg-${stops.length}">…</div>` : '') + '<div id="planSum"></div>';
+  const token = ++planToken;
+  const pts = [state.origin, ...stops]; if(state.ret) pts.push(state.origin);
+  const base = provs();
+  let legs=null, geo=null;
+  try{
+    const j = await osrmAny(base, `/route/v1/driving/${coordStr(pts)}?overview=full&geometries=geojson`);
+    if(token!==planToken) return;
+    legs = j.routes[0].legs.map(l=>({sec:l.duration, km:l.distance/1000})); geo = j.routes[0].geometry;
+  }catch(e){
+    if(token!==planToken) return;
+    legs = pts.slice(1).map((p,i)=>{ const es=estimate(pts[i],p); return {sec:(state.mode==='walk'?es.walkMin:es.carMin)*60, km:es.km, est:true}; });
+  }
+  let travel=0, kmTot=0;
+  legs.forEach((l,i)=>{
+    let min = l.sec/60;
+    if(state.mode==='transit') min = transitMin(l.km, l.km/4.8*60);
+    travel += min; kmTot += l.km;
+    const el = $('#leg-'+i);
+    if(el) el.innerHTML = `⬇ ${modeName[state.mode].split(' ')[0]} ${l.est||state.mode==='transit'?'כ-':''}${fmt(min)} · ${fmtKm(l.km)}`;
+  });
+  const dwellTot = state.dwell * stops.length;
+  const total = travel + dwellTot;
+  $('#planSum').innerHTML = `<div class="summary"><b>${fmt(total)}</b><div>נסיעה/הליכה: ${fmt(travel)} · שהייה: ${fmt(dwellTot)} · ${fmtKm(kmTot)}</div><div>מתחילים מ-<bdi>${esc(state.origin.name)}</bdi></div></div>
+    <div class="actions">
+      <button class="btn primary" id="optBtn">✨ סדר אוטומטית</button>
+      <a class="btn" target="_blank" rel="noopener" href="${planGmaps(stops)}">פתח ב-Google Maps</a>
+      <button class="btn danger" id="clrBtn">נקה תוכנית</button>
+    </div>`;
+  $('#optBtn').onclick = optimize; $('#clrBtn').onclick = ()=>{ state.plan=[]; save(); renderList(); renderPlan(); };
+  if(map && geo){
+    planLayer = L.geoJSON(geo, {style:{color:'#1d2d44', weight:5, opacity:.8, dashArray: state.mode==='transit'?'2 10':null}}).addTo(map);
+    stops.forEach((p,i)=>{
+      planPins.push(L.marker([p.lat,p.lng], {icon:L.divIcon({className:'',html:`<div class="numpin">${i+1}</div>`,iconSize:[30,30],iconAnchor:[15,15]}), zIndexOffset:900, interactive:false}).addTo(map));
+    });
+    if(isPlanTab()) map.fitBounds(planLayer.getBounds().pad(.15));
+  }
+}
+function planGmaps(stops){
+  const o = state.origin;
+  const last = state.ret ? o : stops[stops.length-1];
+  const mid = (state.ret ? stops : stops.slice(0,-1)).map(p=>`${p.lat},${p.lng}`).join('%7C');
+  return `https://www.google.com/maps/dir/?api=1&origin=${o.lat},${o.lng}&destination=${last.lat},${last.lng}${mid?'&waypoints='+mid:''}&travelmode=${gmapsMode()}`;
+}
+async function optimize(){
+  if(state.plan.length < 2) return;
+  const stops = state.plan.map(byId);
+  const pts = [state.origin, ...stops];
+  const base = provs();
+  const btn = $('#optBtn'); btn.textContent = 'מסדר…'; btn.disabled = true;
+  try{
+    const j = await osrmAny(base, `/trip/v1/driving/${coordStr(pts)}?source=first&roundtrip=${state.ret}&overview=false`);
+    const order = j.waypoints.map((w,i)=>({i, pos:w.waypoint_index})).filter(x=>x.i>0).sort((a,b)=>a.pos-b.pos).map(x=>state.plan[x.i-1]);
+    state.plan = order; save();
+  }catch(e){ alert('לא הצלחתי לסדר כרגע, נסו שוב בעוד רגע.'); }
+  renderPlan();
+}
+function isPlanTab(){ return $('#tab-plan').getAttribute('aria-selected')==='true'; }
+function switchTab(t){
+  const places = t==='places';
+  $('#tab-places').setAttribute('aria-selected', places); $('#tab-plan').setAttribute('aria-selected', !places);
+  $('#view-places').style.display = places ? 'flex' : 'none';
+  $('#view-plan').style.display = places ? 'none' : 'block';
+  if(!places) renderPlan();
+}
+
+/* ---------- אירועים ---------- */
+$('#tab-places').onclick = ()=>switchTab('places');
+$('#tab-plan').onclick = ()=>switchTab('plan');
+$('#origin').onchange = e=>{
+  const v = e.target.value;
+  if(v==='me') return useMyLocation();
+  setOrigin(byId(v));
+};
+$('#q').addEventListener('input', e=>{ state.q = e.target.value; renderList(); });
+$('#sort').onchange = e=>{ state.sort = e.target.value; renderList(); };
+$('#dwell').onchange = e=>{ state.dwell = +e.target.value; save(); renderPlan(); };
+$('#ret').onchange = e=>{ state.ret = e.target.checked; save(); renderPlan(); };
+document.querySelectorAll('.mode').forEach(b=>b.onclick = ()=>{
+  state.mode = b.dataset.mode; save();
+  document.querySelectorAll('.mode').forEach(x=>x.setAttribute('aria-pressed', x===b));
+  clearRoute(); renderList(); renderPlan();
+});
+$('#chips').addEventListener('click', e=>{
+  const b = e.target.closest('[data-cat]'); if(!b) return;
+  state.cat = b.dataset.cat; renderChips(); renderList(); fitAll();
+});
+document.addEventListener('click', e=>{
+  const t = e.target;
+  const o = t.closest('[data-open]'); if(o) return openPlace(o.dataset.open);
+  const p = t.closest('[data-plan]'); if(p) return togglePlan(p.dataset.plan);
+  const s = t.closest('[data-setorigin]'); if(s) return setOrigin(byId(s.dataset.setorigin));
+  const up = t.closest('[data-up]'); if(up){ const i=+up.dataset.up; [state.plan[i-1],state.plan[i]]=[state.plan[i],state.plan[i-1]]; save(); return renderPlan(); }
+  const dn = t.closest('[data-down]'); if(dn){ const i=+dn.dataset.down; [state.plan[i+1],state.plan[i]]=[state.plan[i],state.plan[i+1]]; save(); return renderPlan(); }
+  const d = t.closest('[data-del]'); if(d){ state.plan = state.plan.filter(x=>x!==d.dataset.del); save(); renderList(); return renderPlan(); }
+});
+
+/* ---------- התחלה ---------- */
+document.querySelectorAll('.mode').forEach(x=>x.setAttribute('aria-pressed', x.dataset.mode===state.mode));
+$('#dwell').value = String(state.dwell); $('#ret').checked = state.ret;
+renderOrigin(); renderChips();
+const hasMap = initMap();
+if(!hasMap){ map = null; markers = {}; }
+renderList(); renderPlan(); computeTimes();
+})();
+</script>
+</body>
+</html>
