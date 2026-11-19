@@ -172,7 +172,7 @@ footer{max-width:1500px;margin:0 auto;padding:4px 16px 22px;color:var(--muted);f
             <div class="modes" role="group" aria-labelledby="modeLbl">
               <button class="mode" data-mode="car" aria-pressed="true">🚗 רכב</button>
               <button class="mode" data-mode="walk" aria-pressed="false">🚶 הליכה</button>
-              <button class="mode" data-mode="transit" aria-pressed="false">🚇 תחב״צ*</button>
+              <button class="mode" data-mode="transit" aria-pressed="false">🚇 תח״צ*</button>
             </div>
           </div>
         </div>
@@ -260,11 +260,15 @@ const PLACES = [
  {id:'lindt',name:'Lindt Chocolate Boutique',type:'בוטיק שוקולד',cat:'food',lat:48.2089431,lng:16.3723423,
   sum:'בוטיק שוקולד של לינדט, כמה דקות הליכה משטפנסדום. מתאים לטעימות ולמתנות קטנות מהטיול.'},
 
- {id:'meah',name:'מסעדת מאה שערים',type:'מסעדה כשרה פאן-אסייתית',cat:'food',lat:48.2147,lng:16.3813,q:'Mea Shearim, Schmelzgasse 3, 1020 Wien',
+ {id:'jp',name:'JP Pancakes',type:'פנקייקס יפניים סופלה',cat:'food',lat:48.2114206,lng:16.3690372,q:'JP Pancakes Wien',
+  sum:'פנקייקס יפניים בסגנון סופלה – גבוהים, אוריריים ורכים, עם תוספות מתוקות (פירות, שמנת) ומלוחות. מתאים לבראנץ׳ רגוע, במרכז העיר העתיקה.',tip:'בדרך כלל יש המתנה בשעות השיא של סוף השבוע – כדאי לבדוק בזמן אמת באתר jppancakes.at.',verify:true},
+ {id:'hicoffee',name:'Hi Coffee',type:'בית קפה ובר קינוחים',cat:'food',lat:48.2000,lng:16.3050,q:'Hi Coffee, Kufsteingasse 21, 1140 Wien',approx:true,
+  sum:'בית קפה ובר קינוחים שנפתח בספטמבר 2026 ברובע פנצינג (1140), הרחק מהמרכז התיירותי. התפריט המדויק לא פורסם בעמוד שמצאתי.',tip:'כתובת: Kufsteingasse 21. אם התכוונת למקום אחר בשם דומה – תגיד לי ואחליף.',verify:true},
+ {id:'meah',name:'מסעדת מאה שערים',type:'מסעדה כשרה פאן-אסייתית',cat:'food',lat:48.2147,lng:16.3813,q:'Mea Shearim, Schmelzgasse 3, 1020 Wien',approx:true,
   sum:'מסעדה כשרה בסגנון פאן-אסייתי (סושי, מרק עוף, דגים) בלב הרובע היהודי של לאופולדשטאדט (1020), ליד כיכר Karmeliterplatz.',tip:'כתובת: Schmelzgasse 3. מומלץ לוודא כשרות, שעות פתיחה והזמנה מראש, בעיקר סביב שבת וחגים.',verify:true},
- {id:'veahavta',name:'ואהבת',type:'ביסטרו כשר – בייגלים, פיתות וחומוס',cat:'food',lat:48.2150,lng:16.3797,q:'VeAhavta Kosher Bistro, Taborstraße 20a, 1020 Wien',
+ {id:'veahavta',name:'ואהבת',type:'ביסטרו כשר – בייגלים, פיתות וחומוס',cat:'food',lat:48.2150,lng:16.3797,q:'VeAhavta Kosher Bistro, Taborstraße 20a, 1020 Wien',approx:true,
   sum:'ביסטרו כשר עם בייגלים, פיתות ולאפות, קערות חומוס, כריכים וסלטים, בסגנון ישראלי-ים תיכוני. נמצא ברחוב טאבורשטראסה, כמה דקות מ-Schwedenplatz.',tip:'כתובת: Taborstraße 20a. עוד נקודה נוחה לארוחה מהירה קרוב לעיר העתיקה. כדאי לבדוק כשרות ושעות.',verify:true},
- {id:'ohel',name:'מאפיית אוהל משה',type:'מאפייה וקפה כשרים',cat:'food',lat:48.2160,lng:16.3838,q:'Ohel Bakery & Cafe, Lilienbrunngasse 18, 1020 Wien',
+ {id:'ohel',name:'מאפיית אוהל משה',type:'מאפייה וקפה כשרים',cat:'food',lat:48.2160,lng:16.3838,q:'Ohel Bakery & Cafe, Lilienbrunngasse 18, 1020 Wien',approx:true,
   sum:'מאפייה ובית קפה כשרים (חלבי ופרווה) באזור הקהילה היהודית בלאופולדשטאדט, ליד Lilienbrunngasse.',tip:'כתובת: Lilienbrunngasse 18. לפי הרישום – בהשגחת Vaad Hakashrus Khal Yisroel Vienna. כדאי לבדוק שעות, בעיקר ביום שישי ובמוצ״ש.',verify:true},
 
  // ברים ונוף
@@ -597,6 +601,7 @@ function detailHtml(p){
     <p class="sum">${esc(p.sum)}</p>
     ${p.tip?`<div class="tip">💡 ${esc(p.tip)}</div>`:''}
     ${p.season?'<div class="warn">🗓️ פעילות עונתית – לבדוק זמינות לפני ההגעה.</div>':''}
+    ${p.approx?'<div class="warn">📍 מיקום הסימון על המפה משוער. לניווט מדויק השתמשו בכפתורי הניווט (הם לפי כתובת).</div>':''}
     ${p.verify?'<div class="warn">⚠️ לא הצלחתי לאמת את כל הפרטים על המקום – מומלץ לבדוק באתר או בגוגל מפות.</div>':''}
     ${times}
     <div class="actions">
